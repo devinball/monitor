@@ -15,7 +15,7 @@ class PlayInfoDisplay(Static):
         self.service_interface = service_interface
 
     def on_mount(self) -> None:
-        self.set_interval(10 / 60, self.update_display)
+        self.set_interval(service_interface.update_time, self.update_display)
 
     def update_display(self) -> None:
         info : dict = self.service_interface.get_info()
@@ -27,6 +27,7 @@ class PlayInfoDisplay(Static):
 
         self.song_name_label.update(song_name)
         self.artist_name_label.update(artist_names)
+        self.update_frequency_label.update(f"Update Frequency: {self.service_interface.update_time}")
 
         self.bar.total = 100
         self.bar.progress = progress
@@ -35,6 +36,8 @@ class PlayInfoDisplay(Static):
         self.song_name_label = Label()
         self.artist_name_label = Label()
 
+        self.update_frequency_label = Label()
+
         self.bar = ProgressBar(show_eta=False, show_percentage=False)
         self.bar.total = 100
         self.bar.progress = 0
@@ -42,6 +45,7 @@ class PlayInfoDisplay(Static):
         yield self.bar
         yield self.song_name_label
         yield self.artist_name_label
+        yield self.update_frequency_label
 
 class ActionButton(Button):
     def __init__(self, label: TextType | None = None, variant: ButtonVariant = "default", *, name: str | None = None, id: str | None = None, classes: str | None = None, disabled: bool = False):

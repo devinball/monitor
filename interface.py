@@ -2,12 +2,17 @@ import spotipy
 from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyOAuth
 
+default_update_time = 2
+reduced_update_time = 10
+
 class ServiceInterface():
     def __init__(self) -> None:
         load_dotenv()
         scope = "user-read-currently-playing user-modify-playback-state user-read-playback-state"
 
         self.client = spotipy.Spotify(client_credentials_manager=SpotifyOAuth(scope=scope, open_browser=False))
+
+        self.update_time = default_update_time
 
         self.current_volume = 50
 
@@ -51,6 +56,8 @@ class ServiceInterface():
         try:
             playback : dict = self.client.current_playback()
 
+            self.update_time = default_update_time
+
             return {
                 "is_playing" : playback['is_playing'],
                 "song_name" : playback['item']['name'],
@@ -60,6 +67,8 @@ class ServiceInterface():
             }
 
         except:
+            self.update_time = reduced_update_time
+
             return {
                 "is_playing" : False,
                 "song_name" : "",
