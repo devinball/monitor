@@ -7,7 +7,7 @@ class ServiceInterface():
         load_dotenv()
         scope = "user-read-currently-playing user-modify-playback-state user-read-playback-state"
 
-        self.client = spotipy.Spotify(client_credentials_manager=SpotifyOAuth(scope=scope))
+        self.client = spotipy.Spotify(client_credentials_manager=SpotifyOAuth(scope=scope, open_browser=False))
 
         self.current_volume = 50
 

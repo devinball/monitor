@@ -15,7 +15,7 @@ class PlayInfoDisplay(Static):
         self.service_interface = service_interface
 
     def on_mount(self) -> None:
-        self.set_interval(1 / 60, self.update_display)
+        self.set_interval(10 / 60, self.update_display)
 
     def update_display(self) -> None:
         info : dict = self.service_interface.get_info()
