@@ -1,3 +1,6 @@
+import requests
+import os
+import textual_imageview
 from typing import Type
 from rich.console import RenderableType
 from rich.text import TextType
@@ -13,21 +16,30 @@ class PlayInfoDisplay(Static):
     def __init__(self, service_interface : ServiceInterface, renderable: RenderableType = "", *, expand: bool = False, shrink: bool = False, markup: bool = True, name: str | None = None, id: str | None = None, classes: str | None = None, disabled: bool = False) -> None:
         super().__init__(renderable, expand=expand, shrink=shrink, markup=markup, name=name, id=id, classes=classes, disabled=disabled)
         self.service_interface = service_interface
+        self.image_url = ""
 
     def on_mount(self) -> None:
-        self.set_interval(service_interface.update_time, self.update_display)
+        self.set_interval(2, self.update_display)
 
     def update_display(self) -> None:
         info : dict = self.service_interface.get_info()
 
-        song_name : str = info['song_name']
-        artist_names : str = " | ".join(info["artist_names"])
+        song_name : str = info['title']
+        artist_names : str = info["artist"]
 
-        progress : float = (info['song_progress'] / info['song_duration']) * 100
+        progress : float = (info['position'] / info['duration']) * 100
+
+        if self.image_url != info['art']:
+            res = requests.get(info['art'], stream=True)
+            if res.status_code == 200:
+                with open(os.path.dirname(__file__) + "/images/img.jpeg", "wb") as f:
+                    for chunk in res:
+                        f.write(chunk)
+            
+            self.image_url = info['art']
 
         self.song_name_label.update(song_name)
         self.artist_name_label.update(artist_names)
-        self.update_frequency_label.update(f"Update Frequency: {self.service_interface.update_time}")
 
         self.bar.total = 100
         self.bar.progress = progress
@@ -36,8 +48,6 @@ class PlayInfoDisplay(Static):
         self.song_name_label = Label()
         self.artist_name_label = Label()
 
-        self.update_frequency_label = Label()
-
         self.bar = ProgressBar(show_eta=False, show_percentage=False)
         self.bar.total = 100
         self.bar.progress = 0
@@ -45,7 +55,6 @@ class PlayInfoDisplay(Static):
         yield self.bar
         yield self.song_name_label
         yield self.artist_name_label
-        yield self.update_frequency_label
 
 class ActionButton(Button):
     def __init__(self, label: TextType | None = None, variant: ButtonVariant = "default", *, name: str | None = None, id: str | None = None, classes: str | None = None, disabled: bool = False):

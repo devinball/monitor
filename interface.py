@@ -1,78 +1,59 @@
-import spotipy
-from dotenv import load_dotenv
-from spotipy.oauth2 import SpotifyOAuth
+import subprocess
 
-default_update_time = 2
-reduced_update_time = 10
+players = ["spotify"]
 
 class ServiceInterface():
     def __init__(self) -> None:
-        load_dotenv()
-        scope = "user-read-currently-playing user-modify-playback-state user-read-playback-state"
+        self.current_volume = self.get_volume()
 
-        self.client = spotipy.Spotify(client_credentials_manager=SpotifyOAuth(scope=scope, open_browser=False))
+    def previous(self) -> None:
+        subprocess.call(("playerctl", f"--player={','.join(players)}", "previous"))
 
-        self.update_time = default_update_time
+    def pause_play(self) -> None:
+        subprocess.call(("playerctl", f"--player={','.join(players)}", "play-pause"))
 
-        self.current_volume = 50
+    def next(self) -> None:
+        subprocess.call(("playerctl", f"--player={','.join(players)}", "next"))
 
-    def previous(self):
-        try:
-            self.client.previous_track()
-        except spotipy.SpotifyException as e:
-            print(e)
-
-    def pause_play(self):
-        try:
-            if self.get_is_playing():
-                self.client.pause_playback()
-            else:
-                self.client.start_playback()
-        except spotipy.SpotifyException as e:
-            print(e)
-
-    def next(self):
-        try:
-            self.client.next_track()
-        except spotipy.SpotifyException as e:
-            print(e)
-
-    def get_is_playing(self) -> bool:
-        playback = self.client.current_playback()
-        return playback['is_playing'] if playback != None else False
+    def get_volume(self) -> int:
+        return int(float(subprocess.run(
+                ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ volume * 100 }}"],
+                stdout=subprocess.PIPE
+            ).stdout.decode("utf8").strip()))
 
     def change_volume(self, delta : int) -> None:
         self.current_volume += delta
-
-        # limit the volume between 0 and 100
-        self.current_volume = min(100, max(0, self.current_volume))
-        
-        try:
-            self.client.volume(self.current_volume)
-        except spotipy.SpotifyException as e:
-            print(e)
+        self.current_volume = max(0, min(100, self.current_volume))
+        subprocess.call(("playerctl", f"--player={','.join(players)}", "volume", f"{self.current_volume / 100}"))
 
     def get_info(self) -> dict:
-        try:
-            playback : dict = self.client.current_playback()
-
-            self.update_time = default_update_time
-
-            return {
-                "is_playing" : playback['is_playing'],
-                "song_name" : playback['item']['name'],
-                "song_duration" : playback['item']['duration_ms'],
-                "song_progress" : playback['progress_ms'],
-                "artist_names" : [str(i['name']) for i in playback['item']['artists']]
-            }
-
-        except:
-            self.update_time = reduced_update_time
-
-            return {
-                "is_playing" : False,
-                "song_name" : "",
-                "song_duration" : 1,
-                "song_progress" : 1,
-                "artist_names" : [""]
-            }
+        return {
+            "title" : subprocess.run(
+                    ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ title }}"],
+                    stdout=subprocess.PIPE
+                ).stdout.decode("utf8").strip(),
+            "art" : subprocess.run(
+                    ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ mpris:artUrl }}"],
+                    stdout=subprocess.PIPE
+                ).stdout.decode("utf8").strip(),
+            "album" : subprocess.run(
+                    ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ album }}"],
+                    stdout=subprocess.PIPE
+                ).stdout.decode("utf8").strip(),
+            "artist" : subprocess.run(
+                    ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ artist }}"],
+                    stdout=subprocess.PIPE
+                ).stdout.decode("utf8").strip(),
+            "duration" : int(subprocess.run(
+                    ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ mpris:length }}"],
+                    stdout=subprocess.PIPE
+                ).stdout.decode("utf8").strip()),
+            "position" : int(subprocess.run(
+                    ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ position }}"],
+                    stdout=subprocess.PIPE
+                ).stdout.decode("utf8").strip()),
+            "volume" : int(float(subprocess.run(
+                    ["playerctl", f"--player={','.join(players)}", "metadata", "--format", "{{ volume * 100 }}"],
+                    stdout=subprocess.PIPE
+                ).stdout.decode("utf8").strip())),
+        }

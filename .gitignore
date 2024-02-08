@@ -1,4 +1,6 @@
 .env
 .cache
 venv/
+images/*
 __pycache__
+authorized_tokens.txt
