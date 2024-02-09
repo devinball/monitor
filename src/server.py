@@ -1,6 +1,9 @@
 from flask import Flask, request
 from interface import ServiceInterface
 
+host = "localhost"
+port = 62952
+
 app = Flask(__name__)
 
 service_interface = ServiceInterface()
@@ -45,3 +48,14 @@ def next() -> str:
     
     service_interface.next()
     return ""
+
+@app.route("/volume", methods=['POST'])
+def volume() -> str:
+    if not validate_request():
+        return "", 401
+
+    service_interface.change_volume(int(request.form['delta']))
+    return ""
+
+if __name__ == "__main__":
+    app.run(host, port)
